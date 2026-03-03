@@ -82,6 +82,56 @@ def _compute_candidate_spills(
     return spills
 
 
+def calibrate_tau(
+    backend: Backend,
+    calibration_prompts: list[str],
+    k: int = 3,
+    percentile: float = 95.0,
+) -> float:
+    """Dynamically calibrate tau by measuring the model's 'resting' energy spill.
+
+    Samples a set of neutral prompts and sets tau to the Nth percentile of
+    observed normalised spills.  This makes the threshold scale-invariant to
+    the model's actual log-probability distribution rather than requiring
+    manual tuning.
+
+    Parameters
+    ----------
+    backend:
+        Inference backend (must satisfy Backend protocol).
+    calibration_prompts:
+        A list of neutral / unambiguous prompts used to measure baseline spill.
+    k:
+        Number of top-k candidates to sample per prompt.
+    percentile:
+        The percentile of the observed normalised spill distribution to use as
+        the new tau value.
+
+    Returns
+    -------
+    float
+        The calibrated tau value (also printed to stdout).
+    """
+    all_spills: list[float] = []
+    print(f"Calibrating tau over {len(calibration_prompts)} prompts...")
+
+    for prompt in calibration_prompts:
+        context = backend.tokenize(prompt)
+        result = backend.get_logits(context)
+
+        candidate_ids = [int(result.top_k_ids[i]) for i in range(min(k, len(result.top_k_ids)))]
+        spill_pairs = _compute_candidate_spills(backend, context, result, candidate_ids)
+        all_spills.extend(s[0] for s in spill_pairs)
+
+    if not all_spills:
+        raise ValueError("No spill samples collected during calibration.")
+
+    norm_spills = robust_zscore(np.array(all_spills))
+    new_tau = float(np.percentile(norm_spills, percentile))
+    print(f"Calibration complete. New tau: {new_tau:.4f} (at {percentile}th percentile)")
+    return new_tau
+
+
 def generate(
     prompt: str,
     backend: Backend,

@@ -127,3 +127,43 @@ class TestVariantAvsB:
             < score_thresholded(3.0, float(norms[1]))
         )
         assert raw_prefers_b and thresh_prefers_a  # they disagree
+
+
+class TestScoringEquivalence:
+    """Tests adapted from Gemini's implementation verifying core scoring invariants.
+
+    These validate that equal spills produce zero-penalty scores (surprisal-only)
+    and that high-spill candidates are penalized relative to low-spill ones.
+    """
+
+    def test_equal_spills_no_penalty(self):
+        # When all candidates have equal raw spill, robust_zscore → 0 for all.
+        # With norm_spill=0 and tau=0.5, penalty = beta * max(0, 0 - 0.5) = 0.
+        # Scores should equal surprisal (-log_prob) for each candidate.
+        log_probs = np.array([-0.105, -2.302])
+        spills = np.array([10.0, 10.0])
+
+        norm_spills = robust_zscore(spills)
+        scores = np.array([
+            score_thresholded(-log_probs[i], float(norm_spills[i]), beta=2.0, tau=0.5)
+            for i in range(len(log_probs))
+        ])
+
+        # Penalties should be zero; scores equal to surprisal.
+        np.testing.assert_allclose(scores, -log_probs, atol=1e-6)
+
+    def test_high_spill_candidate_penalised(self):
+        # Candidate 0: high log-prob, high spill.
+        # Candidate 1: low log-prob, low spill.
+        # With tau=0.0, the high-spill candidate should score worse.
+        log_probs = np.array([-0.1, -1.0])
+        spills = np.array([20.0, 10.0])
+
+        norm_spills = robust_zscore(spills)
+        scores = np.array([
+            score_thresholded(-log_probs[i], float(norm_spills[i]), beta=2.0, tau=0.0)
+            for i in range(len(log_probs))
+        ])
+
+        # High-spill candidate (0) should have a worse (higher) score.
+        assert scores[0] > scores[1]
