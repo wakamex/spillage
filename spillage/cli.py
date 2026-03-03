@@ -12,7 +12,8 @@ from .scorer import MSSScoringConfig
 @click.option("--tau", "-t", default=4.2, help="Stability threshold (4.8 for 35B, 4.2 for 9B).")
 @click.option("--threshold", "-u", default=0.92, help="Uncertainty threshold for Adaptive Gating.")
 @click.option("--max-tokens", "-m", default=128, help="Maximum number of tokens to generate.")
-def main(prompt, server, k, beta, tau, threshold, max_tokens):
+@click.option("--calibrate", is_flag=True, help="Run dynamic tau calibration before generation.")
+def main(prompt, server, k, beta, tau, threshold, max_tokens, calibrate):
     """Min-Spill Search (MSS) CLI."""
     
     async def run():
@@ -20,6 +21,16 @@ def main(prompt, server, k, beta, tau, threshold, max_tokens):
         config = MSSScoringConfig(beta=beta, tau=tau)
         sampler = MSSSampler(backend, k=k, uncertainty_threshold=threshold, config=config)
         
+        if calibrate:
+            # Neutral calibration prompts
+            neutral_prompts = [
+                "The sky is blue and the grass is ",
+                "Today is a good day for ",
+                "In a world far away, there was a ",
+                "The quick brown fox jumps over "
+            ]
+            await sampler.calibrate_tau(neutral_prompts)
+
         print(f"Prompt: {prompt}\n")
         print("Output: ", end="", flush=True)
         

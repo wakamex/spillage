@@ -26,6 +26,42 @@ class MSSSampler:
         self.uncertainty_threshold = uncertainty_threshold
         self.scorer = RobustScorer(config)
 
+    async def calibrate_tau(self, calibration_prompts: List[str], percentile: float = 95.0) -> float:
+        """
+        Dynamically calibrates tau by measuring the model's 'resting' energy spill.
+        Sets tau to the Nth percentile of observed spills on neutral text.
+        """
+        all_spills = []
+        print(f"Calibrating Tau over {len(calibration_prompts)} prompts...")
+        
+        for prompt in calibration_prompts:
+            res = await self.backend.get_logits(prompt, top_k=self.k)
+            top_k_indices = np.argsort(res.logits)[-self.k:][::-1]
+            top_k_logits = res.logits[top_k_indices]
+            
+            # Simple 1-step lookahead for all k candidates to gather spill distribution
+            candidate_texts = []
+            for cid in [int(res.token_ids[i]) for i in range(len(top_k_indices))]:
+                candidate_texts.append(await self.backend.detokenize([cid]))
+            
+            lookahead_prompts = [prompt + text for text in candidate_texts]
+            lookahead_results = await self.backend.get_logits_batch(lookahead_prompts, top_k=1)
+            
+            step_spills = [
+                self.scorer.compute_spill(top_k_logits[i], lookahead_results[i].log_z)
+                for i in range(self.k)
+            ]
+            all_spills.extend(step_spills)
+            
+        # Set tau to the requested percentile of normalized spills
+        from .scorer import robust_zscore
+        norm_spills = robust_zscore(np.array(all_spills))
+        new_tau = float(np.percentile(norm_spills, percentile))
+        
+        print(f"Calibration Complete. New Tau: {new_tau:.4f} (at {percentile}th percentile)")
+        self.scorer.config.tau = new_tau
+        return new_tau
+
     async def generate(self, 
                        prompt: str, 
                        max_tokens: int = 128) -> AsyncGenerator[str, None]:

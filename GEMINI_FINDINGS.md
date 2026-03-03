@@ -33,6 +33,8 @@ In the **Entity Swap** scenario ("SpaceX vs Blue Origin"), both Greedy and MSS s
 ## 5. Conclusion & Recommendations
 Min-Spill Search is an effective "Safety Net" for local inference. It is most valuable in **low-entropy/high-logic** tasks (Math, Code, Factual QA). 
 
+**Updates in v2:**
+- **Dynamic Tau Calibration:** Added a calibration engine that samples "neutral" text to set the Stability Threshold automatically. This solves the "Vibe-based" hyperparameter problem by tuning the filter to the model's actual log-probability distribution.
+
 **Next Steps:**
 1. **Server-Native Port:** Move the `RobustScorer` into a `llama.cpp` fork to eliminate the HTTP overhead for lookahead branches.
-2. **Dynamic Tau:** Implement a calibration phase to auto-tune $\tau$ based on the specific model's "resting" log-probability distribution.
