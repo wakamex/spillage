@@ -19,7 +19,7 @@ from spillage.backend_mock import MockBackend
 from spillage.config import MSSConfig
 from spillage.sampler import GenerateResult, generate, generate_greedy
 
-from .cases import TestCase, get_cases
+from .cases import TestCase, get_cases, load_simple_qa
 from .report import print_report, GoNoGo
 
 
@@ -95,10 +95,15 @@ def run_eval(
     backend: Backend,
     modes: list[str] | None = None,
     category: str | None = None,
+    cases: list[TestCase] | None = None,
     max_tokens: int = 64,
     cfg: MSSConfig | None = None,
 ) -> list[RunResult]:
-    """Run all test cases across all modes."""
+    """Run test cases across all modes.
+
+    If *cases* is provided it is used directly; otherwise cases are loaded
+    from the built-in suite filtered by *category*.
+    """
     if modes is None:
         modes = ["greedy", "mss-thresholded", "mss-raw"]
     if cfg is None:
@@ -114,7 +119,8 @@ def run_eval(
             adaptive=False,  # Disable adaptive for fair comparison.
         )
 
-    cases = get_cases(category)
+    if cases is None:
+        cases = get_cases(category)
     results: list[RunResult] = []
 
     for case in cases:
@@ -132,7 +138,10 @@ def run_eval(
 @click.command()
 @click.option("--model", type=click.Path(exists=True), envvar="SPILLAGE_MODEL", default=None)
 @click.option("--mock", is_flag=True, help="Use MockBackend (structure validation only).")
-@click.option("--category", type=click.Choice(["factual", "math", "pattern"]), default=None)
+@click.option("--suite", type=click.Choice(["builtin", "simpleqa"]), default="builtin", show_default=True, help="Which case suite to run.")
+@click.option("--simpleqa-n", default=100, show_default=True, help="Number of SimpleQA cases to sample.")
+@click.option("--simpleqa-seed", default=42, show_default=True, help="Random seed for SimpleQA sampling.")
+@click.option("--category", type=click.Choice(["factual", "math", "pattern"]), default=None, help="Filter built-in cases by category.")
 @click.option("--max-tokens", default=64, show_default=True)
 @click.option("--k", default=3, show_default=True)
 @click.option("--beta", default=2.0, show_default=True)
@@ -142,6 +151,9 @@ def run_eval(
 def main(
     model: str | None,
     mock: bool,
+    suite: str,
+    simpleqa_n: int,
+    simpleqa_seed: int,
     category: str | None,
     max_tokens: int,
     k: int,
@@ -160,8 +172,14 @@ def main(
         click.echo("Error: provide --model or --mock.", err=True)
         raise SystemExit(1)
 
+    if suite == "simpleqa":
+        cases = load_simple_qa(n=simpleqa_n, seed=simpleqa_seed)
+        click.echo(f"Loaded {len(cases)} SimpleQA cases (seed={simpleqa_seed}).", err=True)
+    else:
+        cases = get_cases(category)
+
     cfg = MSSConfig(k=k, beta=beta, tau=tau, max_tokens=max_tokens)
-    results = run_eval(backend, category=category, max_tokens=max_tokens, cfg=cfg)
+    results = run_eval(backend, cases=cases, max_tokens=max_tokens, cfg=cfg)
 
     verdict = print_report(results)
 

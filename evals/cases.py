@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import csv
+import pathlib
 import re
 from dataclasses import dataclass
 from typing import Callable
+
+_CASES_DIR = pathlib.Path(__file__).parent.parent / "cases"
 
 
 @dataclass(frozen=True)
@@ -156,7 +160,52 @@ CASES: list[TestCase] = [
 
 
 def get_cases(category: str | None = None) -> list[TestCase]:
-    """Return test cases, optionally filtered by category."""
+    """Return built-in stress test cases, optionally filtered by category."""
     if category is None:
         return list(CASES)
     return [c for c in CASES if c.category == category]
+
+
+def load_simple_qa(n: int | None = None, seed: int = 42) -> list[TestCase]:
+    """Load cases from cases/simple_qa.csv (SimpleQA benchmark).
+
+    Parameters
+    ----------
+    n:
+        Number of cases to return. If None, return all 4332.
+    seed:
+        Random seed for reproducible shuffling when n is set.
+    """
+    csv_path = _CASES_DIR / "simple_qa.csv"
+    if not csv_path.exists():
+        raise FileNotFoundError(
+            f"SimpleQA data not found at {csv_path}. "
+            "It should be committed at cases/simple_qa.csv."
+        )
+
+    import random as _random
+
+    rows: list[TestCase] = []
+    with csv_path.open(newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for i, row in enumerate(reader):
+            question = row["problem"].strip()
+            answer = row["answer"].strip()
+            name = f"simpleqa_{i:04d}"
+            # Prompt: question with a direct-answer suffix.
+            prompt = f"{question} Answer:"
+            expected = answer.lower()
+            rows.append(TestCase(
+                name=name,
+                prompt=prompt,
+                check=lambda t, a=expected: a in t.lower(),
+                description=f"SimpleQA: expected '{answer}'",
+                category="simpleqa",
+            ))
+
+    if n is not None:
+        rng = _random.Random(seed)
+        rows = rng.sample(rows, min(n, len(rows)))
+        rows.sort(key=lambda c: c.name)
+
+    return rows
