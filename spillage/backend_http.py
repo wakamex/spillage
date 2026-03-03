@@ -6,6 +6,7 @@ probabilities. Cannot compute exact log Z — operates in proxy mode.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
@@ -16,6 +17,16 @@ except ImportError as exc:
     raise ImportError("httpx is required for HttpBackend.") from exc
 
 from .backend import Backend, LogitResult
+
+
+@dataclass(frozen=True)
+class BackendCapabilities:
+    """Results of probing a backend for supported features."""
+    tokenize_ok: bool
+    detokenize_ok: bool
+    raw_logits_ok: bool
+    sparse_logprobs_ok: bool
+    notes: tuple[str, ...]
 
 
 class HttpBackend:
@@ -143,6 +154,71 @@ class HttpBackend:
         )
         resp.raise_for_status()
         return resp.json().get("content", "")
+
+    def probe_capabilities(self, probe_text: str = "hello", top_n: int = 5) -> BackendCapabilities:
+        """Probe what the server supports: tokenize, raw logits, sparse logprobs."""
+        notes: list[str] = []
+        tokenize_ok = False
+        detokenize_ok = False
+        raw_logits_ok = False
+        sparse_ok = False
+        probe_ids: list[int] = []
+
+        try:
+            probe_ids = self.tokenize(probe_text)
+            tokenize_ok = True
+        except Exception as exc:  # noqa: BLE001
+            notes.append(f"tokenize failed: {exc}")
+
+        if tokenize_ok:
+            try:
+                self.detokenize(probe_ids)
+                detokenize_ok = True
+            except Exception as exc:  # noqa: BLE001
+                notes.append(f"detokenize failed: {exc}")
+
+        if not probe_ids:
+            probe_ids = [0]
+            notes.append("using fallback probe token id [0]")
+
+        # Try raw logits (requires patched server with return_logits support).
+        try:
+            resp = self._client.post(
+                f"{self._url}/completion",
+                json={
+                    "prompt": probe_ids,
+                    "n_predict": 0,
+                    "temperature": 0.0,
+                    "return_logits": True,
+                    "logits": True,
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            for key in ("logits", "next_token_logits"):
+                val = data.get(key)
+                if isinstance(val, list) and val:
+                    raw_logits_ok = True
+                    break
+            if not raw_logits_ok:
+                notes.append("server responded but no dense logits in response")
+        except Exception as exc:  # noqa: BLE001
+            notes.append(f"raw logits probe failed: {exc}")
+
+        # Try sparse logprobs (always available via n_probs).
+        try:
+            result = self.get_logits(probe_ids)
+            sparse_ok = len(result.top_k_ids) > 0
+        except Exception as exc:  # noqa: BLE001
+            notes.append(f"sparse logprob probe failed: {exc}")
+
+        return BackendCapabilities(
+            tokenize_ok=tokenize_ok,
+            detokenize_ok=detokenize_ok,
+            raw_logits_ok=raw_logits_ok,
+            sparse_logprobs_ok=sparse_ok,
+            notes=tuple(notes),
+        )
 
     def mode(self) -> Literal["proxy"]:
         return "proxy"

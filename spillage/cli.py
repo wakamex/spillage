@@ -152,6 +152,27 @@ def gen(
 
 
 @main.command()
+@click.option("--url", default="http://localhost:8080", show_default=True, help="llama-server base URL.")
+@click.option("--probe-text", default="hello", show_default=True, help="Text to use for capability probing.")
+@click.option("--top-n", default=5, show_default=True, help="Number of top tokens to request.")
+def inspect(url: str, probe_text: str, top_n: int) -> None:
+    """Probe a llama-server backend for supported capabilities."""
+    from .backend_http import BackendCapabilities, HttpBackend
+    backend = HttpBackend(base_url=url, n_probs=top_n)
+    caps = backend.probe_capabilities(probe_text=probe_text, top_n=top_n)
+    payload = {
+        "tokenize_ok": caps.tokenize_ok,
+        "detokenize_ok": caps.detokenize_ok,
+        "raw_logits_ok": caps.raw_logits_ok,
+        "sparse_logprobs_ok": caps.sparse_logprobs_ok,
+        "notes": list(caps.notes),
+    }
+    click.echo(json.dumps(payload, indent=2))
+    if not (caps.raw_logits_ok or caps.sparse_logprobs_ok):
+        raise SystemExit(1)
+
+
+@main.command()
 @click.option("--prompt", "-p", required=True, help="Input prompt text.")
 @click.option("--max-tokens", default=256, show_default=True)
 @click.option("--mock", is_flag=True, hidden=True, help="Use MockBackend (for testing).")

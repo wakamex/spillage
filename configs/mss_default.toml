@@ -1,0 +1,5 @@
+k = 3
+beta = 2.0
+tau = 1.0
+confidence_threshold = 0.92
+panic_margin = 2.0

@@ -122,3 +122,62 @@ class TestHighSpillBackend:
         # Token 5 ("Elon") should have much higher spill than token 3 ("Jeff").
         assert spill_5 > spill_3
         assert spill_5 - spill_3 > 2.0  # meaningful gap
+
+
+class TestHttpBackendProbeCapabilities:
+    """Tests for HttpBackend.probe_capabilities() using a mock httpx client."""
+
+    def _make_backend(self, responses: dict) -> "HttpBackend":
+        """Build an HttpBackend whose _client is patched with fixed responses."""
+        import json as _json
+        from unittest.mock import MagicMock, patch
+
+        from spillage.backend_http import HttpBackend
+
+        backend = HttpBackend.__new__(HttpBackend)
+        backend._url = "http://localhost:8080"
+        backend._n_probs = 5
+        backend._eos = None
+
+        mock_client = MagicMock()
+
+        def _post(url: str, **kwargs):
+            path = url.split("localhost:8080", 1)[-1]
+            payload = kwargs.get("json", {})
+            resp = MagicMock()
+            resp.raise_for_status = MagicMock()
+            resp.json.return_value = responses.get(path, {})
+            return resp
+
+        mock_client.post.side_effect = _post
+        backend._client = mock_client
+        return backend
+
+    def test_reports_all_ok(self):
+        from spillage.backend_http import HttpBackend
+
+        responses = {
+            "/tokenize": {"tokens": [5, 6]},
+            "/detokenize": {"content": "hello"},
+            "/completion": {
+                "logits": [1.0, 0.5, -0.5, 0.0, 0.2],
+                "completion_probabilities": [
+                    {"probs": [{"id": 0, "logprob": -0.1}, {"id": 1, "logprob": -1.2}]}
+                ],
+            },
+        }
+        backend = self._make_backend(responses)
+        caps = backend.probe_capabilities("hello", top_n=2)
+        assert caps.tokenize_ok is True
+        assert caps.detokenize_ok is True
+        assert caps.sparse_logprobs_ok is True
+
+    def test_tokenize_failure_recorded_in_notes(self):
+        responses = {"/tokenize": {}}  # missing "tokens" key → exception
+        backend = self._make_backend(responses)
+        # Patch tokenize to raise so the probe records the failure.
+        from unittest.mock import patch
+        with patch.object(backend, "tokenize", side_effect=RuntimeError("conn refused")):
+            caps = backend.probe_capabilities()
+        assert caps.tokenize_ok is False
+        assert any("tokenize failed" in n for n in caps.notes)
