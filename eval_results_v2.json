@@ -1,0 +1,1167 @@
+{
+  "results": [
+    {
+      "case": "entity_swap",
+      "mode": "greedy",
+      "output": " Jeff Bezos.\nA. True\nB. False\nAnswer:\nA\n\nWhat is the term for the process of identifying and evaluating potential risks in a business context?\nA. Risk Assessment\nB. Risk Management\nC",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 4038.5,
+      "ms_per_token": 84.14,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "entity_swap",
+      "mode": "mss-thresholded",
+      "output": " Jeff Bezos.\nA. True\nB. False\nAnswer:\nA\n\nWhat is the term for the process of identifying and evaluating potential risks in a business context?\nA. Risk Assessment\nB. Risk Management\nC",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11443.8,
+      "ms_per_token": 238.41,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Jeff",
+          "logp": -0.308,
+          "spill": 1.69,
+          "norm": -1.0,
+          "score": 0.308,
+          "selected": true
+        },
+        {
+          "text": ":",
+          "logp": -3.458,
+          "spill": 4.515,
+          "norm": 1.721,
+          "score": 4.9,
+          "selected": false
+        },
+        {
+          "text": " a",
+          "logp": -3.739,
+          "spill": 2.728,
+          "norm": 0.0,
+          "score": 3.739,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "entity_swap",
+      "mode": "mss-raw",
+      "output": " Jeff Bezos.\nThe first is the first time that the European Union has been able to provide a comprehensive and coherent response to the crisis in the Middle East.\nThe first is the first time that the E",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11508.7,
+      "ms_per_token": 239.76,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Jeff",
+          "logp": -0.308,
+          "spill": 1.69,
+          "norm": -1.0,
+          "score": 3.689,
+          "selected": true
+        },
+        {
+          "text": ":",
+          "logp": -3.458,
+          "spill": 4.515,
+          "norm": 1.721,
+          "score": 12.487,
+          "selected": false
+        },
+        {
+          "text": " a",
+          "logp": -3.739,
+          "spill": 2.728,
+          "norm": 0.0,
+          "score": 9.196,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "negation",
+      "mode": "greedy",
+      "output": " Canberra.\nA. \u6b63\u786e\nB. \u9519\u8bef\n\u7b54\u6848:\nA\n\n\u4ee5\u4e0b\u54ea\u4e2a\u5730\u533a\u662f\u4e2d\u56fd\u7684\u201c\u5929\u5e9c\u4e4b\u56fd\u201d\uff1f\nA. \u6c5f\u5357\nB. \u56db\u5ddd\nC. \u6e56\u5357\nD. \u5e7f\u4e1c",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 2812.6,
+      "ms_per_token": 58.6,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "negation",
+      "mode": "mss-thresholded",
+      "output": " Canberra.\nA. \u5bf9\nB. \u9519\n\u7b54\u6848: A\n\n\u4ee5\u4e0b\u54ea\u4e2a\u5730\u533a\u662f\u4e2d\u56fd\u7684\u201c\u5929\u5e9c\u4e4b\u56fd\u201d\uff1f\nA. \u6c5f\u5357\u5730\u533a\nB. \u56db\u5ddd\u76c6\u5730\nC. \u6c5f\u6c49\u5e73\u539f\nD.",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 10717.7,
+      "ms_per_token": 223.29,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Canberra",
+          "logp": -0.332,
+          "spill": 1.146,
+          "norm": -4.318,
+          "score": 0.332,
+          "selected": true
+        },
+        {
+          "text": "\n",
+          "logp": -2.838,
+          "spill": 3.44,
+          "norm": 0.0,
+          "score": 2.838,
+          "selected": false
+        },
+        {
+          "text": ":",
+          "logp": -3.05,
+          "spill": 3.971,
+          "norm": 1.0,
+          "score": 3.05,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "negation",
+      "mode": "mss-raw",
+      "output": " Canberra.\nThe first time I saw the movie \"The Great Gatsby\" (2013)\nThe first time I saw the movie \"The Great Gatsby\" (2013)\nThe first time I saw",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 10548.9,
+      "ms_per_token": 219.77,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Canberra",
+          "logp": -0.332,
+          "spill": 1.146,
+          "norm": -4.318,
+          "score": 2.624,
+          "selected": true
+        },
+        {
+          "text": "\n",
+          "logp": -2.838,
+          "spill": 3.44,
+          "norm": 0.0,
+          "score": 9.718,
+          "selected": false
+        },
+        {
+          "text": ":",
+          "logp": -3.05,
+          "spill": 3.971,
+          "norm": 1.0,
+          "score": 10.993,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "single_token_factual",
+      "mode": "greedy",
+      "output": " Au. What is the atomic number of gold?\n\n<think>\n\n</think>\n\nThe atomic number of gold (symbol **Au**) is **79**.\n\nThis means that every atom of gold contains 79 protons in its nucleus.",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 2524.1,
+      "ms_per_token": 52.59,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "single_token_factual",
+      "mode": "mss-thresholded",
+      "output": " Au. What is the atomic number of gold?\n\n<think>\n\n</think>\n\nThe atomic number of gold (symbol **Au**) is **79**.\n\nThis means that every atom of gold contains 79 protons in its nucleus.",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 9743.9,
+      "ms_per_token": 203.0,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Au",
+          "logp": -0.496,
+          "spill": 1.346,
+          "norm": -1.25,
+          "score": 0.496,
+          "selected": true
+        },
+        {
+          "text": ":",
+          "logp": -2.597,
+          "spill": 2.592,
+          "norm": 0.0,
+          "score": 2.597,
+          "selected": false
+        },
+        {
+          "text": "\n\n",
+          "logp": -2.6,
+          "spill": 3.589,
+          "norm": 1.0,
+          "score": 2.6,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "single_token_factual",
+      "mode": "mss-raw",
+      "output": " Au. The symbol for the element that is 100 times more abundant in the Earth's crust is:\n\nA. Al\nB. Si\nC. Fe\nD. O\nE. Cr\nF. Ca\n\n",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 9694.7,
+      "ms_per_token": 201.97,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Au",
+          "logp": -0.496,
+          "spill": 1.346,
+          "norm": -1.25,
+          "score": 3.187,
+          "selected": true
+        },
+        {
+          "text": ":",
+          "logp": -2.597,
+          "spill": 2.592,
+          "norm": 0.0,
+          "score": 7.782,
+          "selected": false
+        },
+        {
+          "text": "\n\n",
+          "logp": -2.6,
+          "spill": 3.589,
+          "norm": 1.0,
+          "score": 9.778,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "dead_person_bio",
+      "mode": "greedy",
+      "output": " is alive.\n\n<think>\n\n</think>\n\nYes, as of 2024, **Barack Obama** is alive. He is the 44th President of the United States, having served from 2009 to",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 3181.6,
+      "ms_per_token": 66.28,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "dead_person_bio",
+      "mode": "mss-thresholded",
+      "output": " is alive.\n\n<think>\n\n</think>\n\nYes, as of 2024, **Barack Obama** is alive. He is the 44th President of the United States, having served from 2009 to",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 13364.5,
+      "ms_per_token": 278.43,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " is",
+          "logp": -0.108,
+          "spill": -0.817,
+          "norm": -3.01,
+          "score": 0.108,
+          "selected": true
+        },
+        {
+          "text": ",",
+          "logp": -3.122,
+          "spill": 2.581,
+          "norm": 1.0,
+          "score": 3.122,
+          "selected": false
+        },
+        {
+          "text": " was",
+          "logp": -4.102,
+          "spill": 1.734,
+          "norm": 0.0,
+          "score": 4.102,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "dead_person_bio",
+      "mode": "mss-raw",
+      "output": " is alive.\n\nNelson Mandela was a former president of South Africa. Is Barack Obama a former president of the United States?\n\n<think>\n\n</think>\n\nYes, **Barack Obama** is a former president of the Unite",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 13075.0,
+      "ms_per_token": 272.4,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " is",
+          "logp": -0.108,
+          "spill": -0.817,
+          "norm": -3.01,
+          "score": -1.527,
+          "selected": true
+        },
+        {
+          "text": ",",
+          "logp": -3.122,
+          "spill": 2.581,
+          "norm": 1.0,
+          "score": 8.283,
+          "selected": false
+        },
+        {
+          "text": " was",
+          "logp": -4.102,
+          "spill": 1.734,
+          "norm": 0.0,
+          "score": 7.569,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "multi_digit_math",
+      "mode": "greedy",
+      "output": " 615. Here\u2019s how to solve it step by step using column addition.\n\nFirst, align the numbers vertically so that digits in the same place value are in the same column:\n\n```\n  347\n",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 3093.6,
+      "ms_per_token": 64.45,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "multi_digit_math",
+      "mode": "mss-thresholded",
+      "output": " 615. Here\u2019s how to solve it step by step using column addition, starting from the rightmost digit.\n\nFirst, align the numbers vertically so that the ones digits are in the same column, the tens digits",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11933.9,
+      "ms_per_token": 248.62,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " ",
+          "logp": -0.081,
+          "spill": 3.069,
+          "norm": 0.0,
+          "score": 0.081,
+          "selected": true
+        },
+        {
+          "text": " not",
+          "logp": -3.408,
+          "spill": 2.844,
+          "norm": -1.0,
+          "score": 3.408,
+          "selected": false
+        },
+        {
+          "text": " **",
+          "logp": -4.019,
+          "spill": 5.148,
+          "norm": 9.272,
+          "score": 20.562,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "multi_digit_math",
+      "mode": "mss-raw",
+      "output": " 615.\n\nTo solve this using the standard algorithm, we add digits in each column, starting from the rightmost (ones place).\n\nFirst, add the ones: 7 + 8 = 15. Since",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11701.1,
+      "ms_per_token": 243.77,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " ",
+          "logp": -0.081,
+          "spill": 3.069,
+          "norm": 0.0,
+          "score": 6.218,
+          "selected": true
+        },
+        {
+          "text": " not",
+          "logp": -3.408,
+          "spill": 2.844,
+          "norm": -1.0,
+          "score": 9.096,
+          "selected": false
+        },
+        {
+          "text": " **",
+          "logp": -4.019,
+          "spill": 5.148,
+          "norm": 9.272,
+          "score": 14.315,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "hard_arithmetic",
+      "mode": "greedy",
+      "output": "47386.\n\nTo calculate 1247 \u00d7 38, we can break it down step by step. First, multiply 1247 by 8, which gives 9976.",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 2989.7,
+      "ms_per_token": 62.29,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "hard_arithmetic",
+      "mode": "mss-thresholded",
+      "output": "47386.\n\n1247 \u00d7 38 = 47386.\n\nCalculate: 1247 \u00d7 380 = 473860.\n\n12",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 10644.9,
+      "ms_per_token": 221.77,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": "4",
+          "logp": -0.288,
+          "spill": 1.31,
+          "norm": -2.16,
+          "score": 0.288,
+          "selected": true
+        },
+        {
+          "text": "1",
+          "logp": -1.761,
+          "spill": 3.259,
+          "norm": 0.0,
+          "score": 1.761,
+          "selected": false
+        },
+        {
+          "text": "3",
+          "logp": -4.174,
+          "spill": 4.161,
+          "norm": 1.0,
+          "score": 4.174,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "hard_arithmetic",
+      "mode": "mss-raw",
+      "output": "47386\nA. 47386\nB. 47386\nC. 47386\nD. 47386\nAnswer:\nA\n\nThe",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11014.5,
+      "ms_per_token": 229.47,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": "4",
+          "logp": -0.288,
+          "spill": 1.31,
+          "norm": -2.16,
+          "score": 2.908,
+          "selected": true
+        },
+        {
+          "text": "1",
+          "logp": -1.761,
+          "spill": 3.259,
+          "norm": 0.0,
+          "score": 8.279,
+          "selected": false
+        },
+        {
+          "text": "3",
+          "logp": -4.174,
+          "spill": 4.161,
+          "norm": 1.0,
+          "score": 12.496,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "subtraction_borrow",
+      "mode": "greedy",
+      "output": " 2156.\n\nTo solve this, we subtract 2847 from 5003 using the standard algorithm, starting from the rightmost digit (ones place) and moving left.\n\nFirst, look at",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 2992.9,
+      "ms_per_token": 62.35,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "subtraction_borrow",
+      "mode": "mss-thresholded",
+      "output": " 2156.\n\nTo solve this, we subtract 2847 from 5003 using the standard algorithm, starting from the rightmost digit (ones place) and moving left.\n\nFirst, look at",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11646.9,
+      "ms_per_token": 242.64,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " ",
+          "logp": -0.073,
+          "spill": 1.739,
+          "norm": 0.0,
+          "score": 0.073,
+          "selected": true
+        },
+        {
+          "text": " **",
+          "logp": -4.032,
+          "spill": 4.725,
+          "norm": 27.886,
+          "score": 57.804,
+          "selected": false
+        },
+        {
+          "text": ":",
+          "logp": -4.512,
+          "spill": 1.632,
+          "norm": -1.0,
+          "score": 4.512,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "subtraction_borrow",
+      "mode": "mss-raw",
+      "output": " 2156.\n\nTo solve this using the \"add to make\" (or \"add to make a ten\") strategy, we break down the subtraction into manageable steps by adding to reach the next round number. Here\u2019s how",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11486.0,
+      "ms_per_token": 239.29,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " ",
+          "logp": -0.073,
+          "spill": 1.739,
+          "norm": 0.0,
+          "score": 3.551,
+          "selected": true
+        },
+        {
+          "text": " **",
+          "logp": -4.032,
+          "spill": 4.725,
+          "norm": 27.886,
+          "score": 13.483,
+          "selected": false
+        },
+        {
+          "text": ":",
+          "logp": -4.512,
+          "spill": 1.632,
+          "norm": -1.0,
+          "score": 7.776,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "entity_dense_paragraph",
+      "mode": "greedy",
+      "output": " 12 years after her first. The year Ir\u00e8ne Joliot-Curie won her Nobel Prize was 24 years after Marie Curie's first Nobel Prize. What is the sum of the years in which Marie Curie and",
+      "passed": false,
+      "tokens": 48,
+      "ms_total": 4374.9,
+      "ms_per_token": 91.14,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "entity_dense_paragraph",
+      "mode": "mss-thresholded",
+      "output": " 12 years after her first. The year Ir\u00e8ne Joliot-Curie won her Nobel Prize was 24 years after Marie's first Nobel Prize. What is the sum of the years in which both women won their respective first",
+      "passed": false,
+      "tokens": 48,
+      "ms_total": 17249.1,
+      "ms_per_token": 359.36,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " ",
+          "logp": -0.957,
+          "spill": 2.755,
+          "norm": 0.0,
+          "score": 0.957,
+          "selected": true
+        },
+        {
+          "text": " exactly",
+          "logp": -1.614,
+          "spill": 3.645,
+          "norm": 1.0,
+          "score": 1.614,
+          "selected": false
+        },
+        {
+          "text": " the",
+          "logp": -2.253,
+          "spill": 1.821,
+          "norm": -1.05,
+          "score": 2.253,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "entity_dense_paragraph",
+      "mode": "mss-raw",
+      "output": " the same year that the first Nobel Prize in Physics was awarded to a woman, which was in 1963. In which year did the first Nobel Prize in Physics get awarded to a woman?\nA: 190",
+      "passed": false,
+      "tokens": 48,
+      "ms_total": 17377.5,
+      "ms_per_token": 362.03,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " ",
+          "logp": -0.957,
+          "spill": 2.755,
+          "norm": 0.0,
+          "score": 6.468,
+          "selected": false
+        },
+        {
+          "text": " exactly",
+          "logp": -1.614,
+          "spill": 3.645,
+          "norm": 1.0,
+          "score": 8.903,
+          "selected": false
+        },
+        {
+          "text": " the",
+          "logp": -2.253,
+          "spill": 1.821,
+          "norm": -1.05,
+          "score": 5.896,
+          "selected": true
+        }
+      ]
+    },
+    {
+      "case": "false_presupposition",
+      "mode": "greedy",
+      "output": " false. The Great Wall is not visible from space with the naked eye. It is too narrow and blends in with the surrounding terrain. However, it is visible from low Earth orbit with the aid of binoculars",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 3306.1,
+      "ms_per_token": 68.88,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "false_presupposition",
+      "mode": "mss-thresholded",
+      "output": " false.\n\nThe Great Wall of China is a series of fortifications that were built across the historical northern borders of China to protect the Chinese states and empires against the raids and invasions",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 12321.5,
+      "ms_per_token": 256.7,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " false",
+          "logp": -0.836,
+          "spill": 1.053,
+          "norm": 0.0,
+          "score": 0.836,
+          "selected": true
+        },
+        {
+          "text": " a",
+          "logp": -1.179,
+          "spill": 0.352,
+          "norm": -1.0,
+          "score": 1.179,
+          "selected": false
+        },
+        {
+          "text": " not",
+          "logp": -3.212,
+          "spill": 3.718,
+          "norm": 3.803,
+          "score": 8.817,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "false_presupposition",
+      "mode": "mss-raw",
+      "output": " a myth.\nA. \u5bf9\nB. \u9519\n\u7b54\u6848: B\n\n\u5728\u63a2\u8ba8\u300a\u5317\u4eac\u6761\u7ea6\u300b\u7684\u5f71\u54cd\u65f6\uff0c\u6709\u4eba\u63d0\u51fa\uff1a\u5982\u679c\u4e2d\u56fd\u6ca1\u6709\u8fdb\u884c\u53cd\u6297\uff0c\u90a3\u4e48\u300a\u5317\u4eac\u6761\u7ea6\u300b\u5c31\u4e0d\u4f1a\u5bf9\u4e2d\u56fd\u7684\u793e\u4f1a\u4ea7\u751f\u51b2\u51fb\u3002",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 12874.0,
+      "ms_per_token": 268.21,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " false",
+          "logp": -0.836,
+          "spill": 1.053,
+          "norm": 0.0,
+          "score": 2.942,
+          "selected": false
+        },
+        {
+          "text": " a",
+          "logp": -1.179,
+          "spill": 0.352,
+          "norm": -1.0,
+          "score": 1.883,
+          "selected": true
+        },
+        {
+          "text": " not",
+          "logp": -3.212,
+          "spill": 3.718,
+          "norm": 3.803,
+          "score": 10.647,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "reverse_order_recall",
+      "mode": "greedy",
+      "output": " Jefferson, Adams, and Washington.\nA. True\nB. False\n\n<think>\n\n</think>\n\nLet's break down the order of the first three US presidents:\n1.  **George Washington** (1st)\n2.",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 3500.3,
+      "ms_per_token": 72.92,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "reverse_order_recall",
+      "mode": "mss-thresholded",
+      "output": " Jefferson, Adams, and Washington.\nA. True\nB. False\nAnswer:\nB\n\nWhat was the primary reason for the establishment of the National Health Service (NHS) in the UK?\nA. To provide free",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 13689.4,
+      "ms_per_token": 285.2,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Jefferson",
+          "logp": -0.206,
+          "spill": 3.767,
+          "norm": 0.0,
+          "score": 0.206,
+          "selected": true
+        },
+        {
+          "text": ":",
+          "logp": -2.695,
+          "spill": 3.495,
+          "norm": -1.0,
+          "score": 2.695,
+          "selected": false
+        },
+        {
+          "text": "?",
+          "logp": -4.425,
+          "spill": 6.641,
+          "norm": 10.561,
+          "score": 23.547,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "reverse_order_recall",
+      "mode": "mss-raw",
+      "output": " Jefferson, Adams, and Washington.\nThe first three US presidents were Washington, Adams, and Jefferson. In reverse order, the third, second, and first presidents were Jefferson, Adams, and Washington.",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 12805.7,
+      "ms_per_token": 266.78,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Jefferson",
+          "logp": -0.206,
+          "spill": 3.767,
+          "norm": 0.0,
+          "score": 7.741,
+          "selected": true
+        },
+        {
+          "text": ":",
+          "logp": -2.695,
+          "spill": 3.495,
+          "norm": -1.0,
+          "score": 9.686,
+          "selected": false
+        },
+        {
+          "text": "?",
+          "logp": -4.425,
+          "spill": 6.641,
+          "norm": 10.561,
+          "score": 17.708,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "similar_sounding_capital",
+      "mode": "greedy",
+      "output": " Bratislava.\nThe capital of Slovakia is not Bratislava's neighbor Vienna, it is Bratislava.\nIs the sentence below entailed by the sentence above?\nA. Yes\nB. No\nAnswer:\n\n<think>\n\n</think>",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 3091.3,
+      "ms_per_token": 64.4,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "similar_sounding_capital",
+      "mode": "mss-thresholded",
+      "output": " Bratislava.\nThe capital of Slovakia is not Vienna, it is Bratislava.\nAre these two sentences paraphrases of each other?\n\n<think>\n\n</think>\n\nNo, these two sentences are **not** perfect paraphrases of ",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11007.3,
+      "ms_per_token": 229.32,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Bratis",
+          "logp": -0.736,
+          "spill": 2.943,
+          "norm": 1.0,
+          "score": 0.736,
+          "selected": true
+        },
+        {
+          "text": " not",
+          "logp": -2.632,
+          "spill": 2.225,
+          "norm": -2.185,
+          "score": 2.632,
+          "selected": false
+        },
+        {
+          "text": " the",
+          "logp": -2.985,
+          "spill": 2.717,
+          "norm": 0.0,
+          "score": 2.985,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "similar_sounding_capital",
+      "mode": "mss-raw",
+      "output": " Bratislava.\nThe capital of Slovakia is not Vienna, it is Bratislava.\nDo the above sentences mean the same thing?\n\n<think>:\n1.  **Analyze the first sentence:** \"The capital of Slovakia is not",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11378.2,
+      "ms_per_token": 237.05,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " Bratis",
+          "logp": -0.736,
+          "spill": 2.943,
+          "norm": 1.0,
+          "score": 6.621,
+          "selected": true
+        },
+        {
+          "text": " not",
+          "logp": -2.632,
+          "spill": 2.225,
+          "norm": -2.185,
+          "score": 7.081,
+          "selected": false
+        },
+        {
+          "text": " the",
+          "logp": -2.985,
+          "spill": 2.717,
+          "norm": 0.0,
+          "score": 8.42,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "repetition_trap",
+      "mode": "greedy",
+      "output": " C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 2537.3,
+      "ms_per_token": 52.86,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "repetition_trap",
+      "mode": "mss-thresholded",
+      "output": " C A B C A B C A B C A B C A B C A B C A B C A B C A B C\n\nFigure 1. The 1200000000000",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 9964.2,
+      "ms_per_token": 207.59,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " C",
+          "logp": -0.023,
+          "spill": -2.066,
+          "norm": -3.355,
+          "score": 0.023,
+          "selected": true
+        },
+        {
+          "text": "\n\n",
+          "logp": -4.794,
+          "spill": 2.878,
+          "norm": 0.0,
+          "score": 4.794,
+          "selected": false
+        },
+        {
+          "text": " A",
+          "logp": -5.52,
+          "spill": 4.351,
+          "norm": 1.0,
+          "score": 5.52,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "repetition_trap",
+      "mode": "mss-raw",
+      "output": " C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B C A B",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 9324.1,
+      "ms_per_token": 194.25,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " C",
+          "logp": -0.023,
+          "spill": -2.066,
+          "norm": -3.355,
+          "score": -4.11,
+          "selected": true
+        },
+        {
+          "text": "\n\n",
+          "logp": -4.794,
+          "spill": 2.878,
+          "norm": 0.0,
+          "score": 10.549,
+          "selected": false
+        },
+        {
+          "text": " A",
+          "logp": -5.52,
+          "spill": 4.351,
+          "norm": 1.0,
+          "score": 14.222,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "fibonacci_pattern",
+      "mode": "greedy",
+      "output": " 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 41",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 2895.5,
+      "ms_per_token": 60.32,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "fibonacci_pattern",
+      "mode": "mss-thresholded",
+      "output": " 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 41",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 11629.4,
+      "ms_per_token": 242.28,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " ",
+          "logp": -0.132,
+          "spill": 1.47,
+          "norm": 0.0,
+          "score": 0.132,
+          "selected": true
+        },
+        {
+          "text": " ...",
+          "logp": -2.395,
+          "spill": -2.986,
+          "norm": -1.26,
+          "score": 2.395,
+          "selected": false
+        },
+        {
+          "text": " and",
+          "logp": -4.875,
+          "spill": 5.006,
+          "norm": 1.0,
+          "score": 4.875,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "fibonacci_pattern",
+      "mode": "mss-raw",
+      "output": " ... \u662f\u8457\u540d\u7684\u6590\u6ce2\u90a3\u5951\u6570\u5217\u3002\u8bf7\u95ee\u8fd9\u4e2a\u6570\u5217\u4e2d\uff0c\u7b2c\u4e00\u4e2a\u5305\u542b10\u4e2a\u6570\u5b57\u7684\u9879\u662f\u54ea\u4e00\u4e2a\uff1f\n\n<think>\nHere's a thinking process that leads to the suggested answer:\n\n1.  **Analyze",
+      "passed": false,
+      "tokens": 48,
+      "ms_total": 12758.8,
+      "ms_per_token": 265.81,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": " ",
+          "logp": -0.132,
+          "spill": 1.47,
+          "norm": 0.0,
+          "score": 3.071,
+          "selected": false
+        },
+        {
+          "text": " ...",
+          "logp": -2.395,
+          "spill": -2.986,
+          "norm": -1.26,
+          "score": -3.577,
+          "selected": true
+        },
+        {
+          "text": " and",
+          "logp": -4.875,
+          "spill": 5.006,
+          "norm": 1.0,
+          "score": 14.887,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "letter_shift",
+      "mode": "greedy",
+      "output": "h, i->j, k->l, m->n, o->p, q->r, s->t, u->v, w->x, y->z, a->b, c->d, e->",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 2525.8,
+      "ms_per_token": 52.62,
+      "divergence_step": null,
+      "divergence_candidates": null
+    },
+    {
+      "case": "letter_shift",
+      "mode": "mss-thresholded",
+      "output": "h, i->j, k->l, m->n, o->p, q->r, s->t, u->v, w->x, y->z, a->b, c->d, e->",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 9932.5,
+      "ms_per_token": 206.93,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": "h",
+          "logp": -0.019,
+          "spill": -2.337,
+          "norm": -30.43,
+          "score": 0.019,
+          "selected": true
+        },
+        {
+          "text": "i",
+          "logp": -5.633,
+          "spill": 3.128,
+          "norm": 0.0,
+          "score": 5.633,
+          "selected": false
+        },
+        {
+          "text": "f",
+          "logp": -5.805,
+          "spill": 3.308,
+          "norm": 1.0,
+          "score": 5.805,
+          "selected": false
+        }
+      ]
+    },
+    {
+      "case": "letter_shift",
+      "mode": "mss-raw",
+      "output": "h, i->j, k->l, m->n, o->p\n== 1.1.1.1.1.1.1.1.1.1.1.1.1.1.",
+      "passed": true,
+      "tokens": 48,
+      "ms_total": 10233.6,
+      "ms_per_token": 213.2,
+      "divergence_step": 0,
+      "divergence_candidates": [
+        {
+          "text": "h",
+          "logp": -0.019,
+          "spill": -2.337,
+          "norm": -30.43,
+          "score": -4.656,
+          "selected": true
+        },
+        {
+          "text": "i",
+          "logp": -5.633,
+          "spill": 3.128,
+          "norm": 0.0,
+          "score": 11.89,
+          "selected": false
+        },
+        {
+          "text": "f",
+          "logp": -5.805,
+          "spill": 3.308,
+          "norm": 1.0,
+          "score": 12.421,
+          "selected": false
+        }
+      ]
+    }
+  ],
+  "verdict": "NO_GO"
+}
