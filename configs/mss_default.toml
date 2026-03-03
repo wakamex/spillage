@@ -1,0 +1,9 @@
+k = 3
+beta = 2.0
+tau = 1.0
+lambda_proxy = 0.5
+uncertainty_top1_prob = 0.92
+uncertainty_entropy = 1.5
+adaptive_k = true
+panic_margin = 2.0
+panic_retry_k = 5
