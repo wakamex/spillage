@@ -142,7 +142,8 @@ def run_eval(
         parts = []
         for r in mode_results:
             mark = "✓" if r.passed else "✗"
-            extracted = _extract_answer(r.output_text)[:40].replace("\n", " ")
+            extracted = _extract_answer(r.output_text) or r.output_text
+            extracted = extracted.replace("\n", " ")
             # Show baseline delta if available.
             if baseline and case.name in baseline and r.mode in baseline[case.name]:
                 was = baseline[case.name][r.mode]
