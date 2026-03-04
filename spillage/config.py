@@ -17,6 +17,7 @@ class MSSConfig:
     max_tokens: int = 256
     temperature: float = 0.0
     adaptive: bool = True
+    delta_e_threshold: float = -4.5
 
 
 # Model-specific presets (tau/beta on z-normalized scale).

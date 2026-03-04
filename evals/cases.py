@@ -4,11 +4,22 @@ from __future__ import annotations
 
 import csv
 import functools
+import json
 import pathlib
 import re
 import subprocess
 from dataclasses import dataclass
 from typing import Callable
+
+_CREDENTIALS_PATH = pathlib.Path.home() / ".claude" / ".credentials.json"
+
+
+def _load_api_key() -> str | None:
+    try:
+        d = json.loads(_CREDENTIALS_PATH.read_text())
+        return d["claudeAiOauth"]["accessToken"]
+    except Exception:
+        return None
 
 _CASES_DIR = pathlib.Path(__file__).parent.parent / "cases"
 
@@ -22,8 +33,6 @@ class TestCase:
     category: str  # "factual", "math", "pattern"
 
 
-_ANSWER_PATTERN = re.compile(r"(?i)Answer\s*:\s*([^\n]+)")
-
 
 def _strip_think(text: str) -> str:
     """Remove <think>...</think> blocks produced by reasoning models."""
@@ -33,30 +42,36 @@ def _strip_think(text: str) -> str:
 
 
 def _extract_answer(text: str) -> str:
-    """Extract the answer after 'Answer:' prefix, stripping think tags and markdown."""
+    """Extract the answer after 'Answer:' prefix, stripping think tags and markdown.
+
+    Only matches "Answer:" at the start of the first non-empty line to avoid
+    picking up "Answer:" from model-generated follow-up questions further down.
+    """
     text = _strip_think(text)
     text = text.replace("**", "").replace("*", "")
-    m = _ANSWER_PATTERN.search(text)
-    if m:
-        return m.group(1).strip()
-    # Fallback: first non-empty line.
+    # Find first non-empty line.
+    first_line = ""
     for line in text.splitlines():
         line = line.strip()
         if line:
-            return line
-    return text.strip()
+            first_line = line
+            break
+    if not first_line:
+        return text.strip()
+    # Only match "Answer:" if it's at the start of the first line.
+    m = re.match(r"(?i)Answer\s*:\s*(.+)", first_line)
+    if m:
+        return m.group(1).strip()
+    return first_line
 
 
 @functools.lru_cache(maxsize=2048)
 def _claude_judge(question: str, expected: str, extracted: str) -> bool:
-    """Use `claude -p` to judge semantic equivalence. Cached by (expected, extracted)."""
+    """Use Anthropic SDK to judge semantic equivalence. Cached by (question, expected, extracted)."""
     # Reject clearly garbage extractions (truncated thinking blocks).
     stripped = extracted.strip()
-    if not stripped or stripped in ("<think>", "</think>") or stripped.startswith("<think>") and "</think>" not in stripped:
+    if not stripped or stripped in ("<think>", "</think>") or (stripped.startswith("<think>") and "</think>" not in stripped):
         return False
-    # Fast path: exact substring match avoids a claude call.
-    if expected.lower() in extracted.lower():
-        return True
     prompt = (
         f"Question: {question}\n"
         f"Expected answer: {expected}\n"
@@ -64,6 +79,20 @@ def _claude_judge(question: str, expected: str, extracted: str) -> bool:
         "Is the model answer correct? Allow for semantic equivalence, abbreviations, "
         "and minor formatting differences. Reply with only 'yes' or 'no'."
     )
+    api_key = _load_api_key()
+    if api_key:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            msg = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=10,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            return msg.content[0].text.strip().lower().startswith("yes")
+        except Exception:
+            pass
+    # Fallback to subprocess claude -p.
     try:
         import os
         env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
@@ -73,8 +102,7 @@ def _claude_judge(question: str, expected: str, extracted: str) -> bool:
         )
         return result.stdout.strip().lower().startswith("yes")
     except Exception:
-        # Fallback to substring if claude unavailable.
-        return expected.lower() in extracted.lower()
+        return False
 
 
 def _contains(text: str, *targets: str) -> bool:
@@ -221,6 +249,118 @@ def get_cases(category: str | None = None) -> list[TestCase]:
     if category is None:
         return list(CASES)
     return [c for c in CASES if c.category == category]
+
+
+# ---------------------------------------------------------------------------
+# Capitals benchmark: "What is the capital of X?" — graded by substring match.
+# Includes classic trap capitals (Canberra not Sydney, Ottawa not Toronto, etc.)
+# ---------------------------------------------------------------------------
+
+_CAPITALS: list[tuple[str, str, list[str]]] = [
+    # (country, canonical_answer, [acceptable_variants])
+    # --- Easy / well-known ---
+    ("France", "Paris", []),
+    ("Germany", "Berlin", []),
+    ("Japan", "Tokyo", []),
+    ("China", "Beijing", ["Peking"]),
+    ("Russia", "Moscow", []),
+    ("Italy", "Rome", []),
+    ("Spain", "Madrid", []),
+    ("India", "New Delhi", ["Delhi"]),
+    ("Mexico", "Mexico City", []),
+    ("Egypt", "Cairo", []),
+    ("South Africa", "Pretoria", ["Cape Town", "Bloemfontein"]),  # multi-capital
+    ("Nigeria", "Abuja", []),
+    ("Argentina", "Buenos Aires", []),
+    ("Saudi Arabia", "Riyadh", []),
+    ("Turkey", "Ankara", []),
+    ("South Korea", "Seoul", []),
+    ("Indonesia", "Jakarta", []),
+    ("Iran", "Tehran", []),
+    ("Thailand", "Bangkok", ["Krung Thep"]),
+    ("Poland", "Warsaw", []),
+    ("Sweden", "Stockholm", []),
+    ("Norway", "Oslo", []),
+    ("Denmark", "Copenhagen", []),
+    ("Finland", "Helsinki", []),
+    ("Netherlands", "Amsterdam", []),  # The Hague is seat of gov but Amsterdam is capital
+    ("Belgium", "Brussels", []),
+    ("Austria", "Vienna", []),
+    ("Switzerland", "Bern", []),       # trap: not Zurich or Geneva
+    ("Portugal", "Lisbon", []),
+    ("Greece", "Athens", []),
+    ("Czech Republic", "Prague", []),
+    ("Hungary", "Budapest", []),
+    ("Romania", "Bucharest", []),
+    ("Ukraine", "Kyiv", ["Kiev"]),
+    # --- Trap capitals (common wrong answers) ---
+    ("Australia", "Canberra", []),     # trap: not Sydney or Melbourne
+    ("Canada", "Ottawa", []),          # trap: not Toronto or Montreal
+    ("Brazil", "Brasília", ["Brasilia"]),  # trap: not Rio de Janeiro or São Paulo
+    ("New Zealand", "Wellington", []), # trap: not Auckland
+    ("Pakistan", "Islamabad", []),     # trap: not Karachi or Lahore
+    ("Sri Lanka", "Sri Jayawardenepura Kotte", ["Colombo", "Kotte"]),
+    ("Myanmar", "Naypyidaw", ["Nay Pyi Taw"]),  # trap: not Yangon/Rangoon
+    ("Kazakhstan", "Astana", ["Nur-Sultan"]),
+    ("Nigeria", "Abuja", []),          # trap: not Lagos
+    ("Ivory Coast", "Yamoussoukro", ["Abidjan"]),  # trap: not Abidjan (economic capital)
+    ("Tanzania", "Dodoma", ["Dar es Salaam"]),  # trap: not Dar es Salaam
+    ("Bolivia", "Sucre", ["La Paz"]),  # constitutional capital (La Paz = seat of gov)
+    ("Malaysia", "Kuala Lumpur", ["Putrajaya"]),
+    ("United Arab Emirates", "Abu Dhabi", []),  # trap: not Dubai
+    # --- Medium difficulty ---
+    ("Morocco", "Rabat", []),          # trap: not Casablanca
+    ("Algeria", "Algiers", []),
+    ("Kenya", "Nairobi", []),
+    ("Ethiopia", "Addis Ababa", []),
+    ("Ghana", "Accra", []),
+    ("Vietnam", "Hanoi", []),          # trap: not Ho Chi Minh City
+    ("Philippines", "Manila", []),
+    ("Bangladesh", "Dhaka", []),
+    ("Afghanistan", "Kabul", []),
+    ("Iraq", "Baghdad", []),
+    ("Syria", "Damascus", []),
+    ("Jordan", "Amman", []),
+    ("Israel", "Jerusalem", ["Tel Aviv"]),
+    ("Colombia", "Bogotá", ["Bogota"]),
+    ("Peru", "Lima", []),
+    ("Chile", "Santiago", []),
+    ("Venezuela", "Caracas", []),
+    ("Cuba", "Havana", []),
+    ("Slovakia", "Bratislava", []),
+    ("Slovenia", "Ljubljana", []),
+    ("Croatia", "Zagreb", []),
+    ("Serbia", "Belgrade", []),
+    ("Bulgaria", "Sofia", []),
+    ("Albania", "Tirana", []),
+    ("Iceland", "Reykjavik", []),
+    ("Ireland", "Dublin", []),
+    ("Portugal", "Lisbon", []),
+]
+
+
+def load_capitals() -> list[TestCase]:
+    """Return capital-city test cases graded by case-insensitive substring match."""
+    seen: set[str] = set()
+    cases: list[TestCase] = []
+    for country, canonical, variants in _CAPITALS:
+        key = country
+        if key in seen:
+            continue
+        seen.add(key)
+        all_answers = [canonical] + variants
+        question = f"What is the capital of {country}?"
+        prompt = f"What is the capital of {country}? Answer:"
+        cases.append(TestCase(
+            name=f"capital_{country.lower().replace(' ', '_')}",
+            prompt=prompt,
+            check=lambda t, answers=all_answers: any(
+                a.lower() in _extract_answer(_strip_think(t)).lower() for a in answers
+            ),
+            description=f"Capital of {country}: {canonical}",
+            category="capitals",
+        ))
+    return cases
 
 
 def load_simple_qa(n: int | None = None, seed: int = 42) -> list[TestCase]:

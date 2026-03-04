@@ -45,6 +45,7 @@ class GenerateResult:
     token_ids: list[int]
     events: list[TokenEvent] = field(default_factory=list)
     total_time_ms: float = 0.0
+    retried: bool = False
 
 
 def _surprisal(prob: float) -> float:
@@ -294,23 +295,42 @@ def generate_greedy(
     backend: Backend,
     max_tokens: int = 256,
 ) -> GenerateResult:
-    """Standard greedy (argmax) decoding — baseline for comparison."""
+    """Standard greedy (argmax) decoding — baseline for comparison.
+
+    Now records per-token ∆E (paper's spilled energy) using consecutive
+    forward passes that are already computed.  Zero extra cost.
+    """
     context = backend.tokenize(prompt)
     eos = backend.eos_token_id()
     generated_ids: list[int] = []
     events: list[TokenEvent] = []
     t_start = time.monotonic()
 
+    prev_logit: float | None = None  # logit of selected token at step i
+
     for step in range(max_tokens):
         t_step = time.monotonic()
         result = backend.get_logits(context)
         winner_id = int(result.top_k_ids[0])
 
+        # ∆E = log_z(step i+1) - logit(step i).
+        # At step 0 we don't have a previous logit, so ∆E is 0.
+        if prev_logit is not None:
+            delta_e = result.log_z - prev_logit
+        else:
+            delta_e = 0.0
+
+        # Record this step's logit for the next step's ∆E calculation.
+        if result.logits is not None:
+            current_logit = float(result.logits[winner_id])
+        else:
+            current_logit = float(result.top_k_logits[0])
+
         cand = CandidateScore(
             token_id=winner_id,
             token_text=backend.detokenize([winner_id]),
             log_prob=float(np.log(max(float(result.top_k_probs[0]), 1e-12))),
-            spill_raw=0.0,
+            spill_raw=delta_e,
             spill_normalized=0.0,
             score=0.0,
         )
@@ -323,6 +343,7 @@ def generate_greedy(
         )
         events.append(event)
 
+        prev_logit = current_logit
         generated_ids.append(winner_id)
         context.append(winner_id)
         if winner_id == eos:
@@ -336,3 +357,165 @@ def generate_greedy(
         events=events,
         total_time_ms=total,
     )
+
+
+def generate_delta_e_gated(
+    prompt: str,
+    backend: Backend,
+    config: MSSConfig | None = None,
+    scoring: Literal["lowest", "abs"] = "lowest",
+    on_token: Callable[[TokenEvent], None] | None = None,
+) -> GenerateResult:
+    """∆E-gated decoding: greedy by default, lookahead when ∆E flags trouble.
+
+    Parameters
+    ----------
+    scoring:
+        ``"lowest"``  – select candidate with most negative ∆E (mss-gated).
+        ``"abs"``     – select candidate with smallest |∆E| (mss-gated-abs).
+    """
+    cfg = config or MSSConfig()
+    context = backend.tokenize(prompt)
+    eos = backend.eos_token_id()
+    generated_ids: list[int] = []
+    events: list[TokenEvent] = []
+    t_start = time.monotonic()
+
+    prev_logit: float | None = None
+
+    for step in range(cfg.max_tokens):
+        t_step = time.monotonic()
+        result = backend.get_logits(context)
+
+        # ∆E for the current step.
+        if prev_logit is not None:
+            delta_e = result.log_z - prev_logit
+        else:
+            delta_e = 0.0
+
+        # Greedy candidate.
+        greedy_id = int(result.top_k_ids[0])
+        if result.logits is not None:
+            greedy_logit = float(result.logits[greedy_id])
+        else:
+            greedy_logit = float(result.top_k_logits[0])
+
+        # Gate: step 0 or ∆E below threshold → stay greedy.
+        if step == 0 or delta_e < cfg.delta_e_threshold:
+            cand = CandidateScore(
+                token_id=greedy_id,
+                token_text=backend.detokenize([greedy_id]),
+                log_prob=float(np.log(max(float(result.top_k_probs[0]), 1e-12))),
+                spill_raw=delta_e,
+                spill_normalized=0.0,
+                score=0.0,
+            )
+            event = TokenEvent(
+                step=step,
+                candidates=[cand],
+                selected=0,
+                wall_time_ms=(time.monotonic() - t_step) * 1000,
+                fast_path=True,
+            )
+            events.append(event)
+            if on_token:
+                on_token(event)
+
+            prev_logit = greedy_logit
+            generated_ids.append(greedy_id)
+            context.append(greedy_id)
+            if greedy_id == eos:
+                break
+            continue
+
+        # --- Lookahead triggered ---
+        k = min(cfg.k, len(result.top_k_ids))
+        candidate_ids = [int(result.top_k_ids[i]) for i in range(k)]
+
+        # One forward pass per candidate to get log_z_next.
+        lookahead_seqs = [context + [cid] for cid in candidate_ids]
+        lookahead_results = backend.get_logits_batch(lookahead_seqs)
+
+        scored: list[CandidateScore] = []
+        for i, cid in enumerate(candidate_ids):
+            if result.logits is not None:
+                cand_logit = float(result.logits[cid])
+            else:
+                cand_logit = float(result.top_k_logits[i])
+            cand_delta_e = lookahead_results[i].log_z - cand_logit
+            scored.append(CandidateScore(
+                token_id=cid,
+                token_text=backend.detokenize([cid]),
+                log_prob=float(np.log(max(float(result.top_k_probs[i]), 1e-12))),
+                spill_raw=cand_delta_e,
+                spill_normalized=0.0,
+                score=abs(cand_delta_e) if scoring == "abs" else cand_delta_e,
+            ))
+
+        # Select: lowest score wins (lowest ∆E or lowest |∆E|).
+        winner_idx = min(range(len(scored)), key=lambda i: scored[i].score)
+        winner = scored[winner_idx]
+
+        event = TokenEvent(
+            step=step,
+            candidates=scored,
+            selected=winner_idx,
+            wall_time_ms=(time.monotonic() - t_step) * 1000,
+            fast_path=False,
+        )
+        events.append(event)
+        if on_token:
+            on_token(event)
+
+        # Update prev_logit for the selected candidate.
+        if result.logits is not None:
+            prev_logit = float(result.logits[winner.token_id])
+        else:
+            prev_logit = float(result.top_k_logits[winner_idx])
+
+        generated_ids.append(winner.token_id)
+        context.append(winner.token_id)
+        if winner.token_id == eos:
+            break
+
+    total = (time.monotonic() - t_start) * 1000
+    text = backend.detokenize(generated_ids)
+    return GenerateResult(
+        text=text,
+        token_ids=generated_ids,
+        events=events,
+        total_time_ms=total,
+    )
+
+
+def generate_seq_gated(
+    prompt: str,
+    backend: Backend,
+    config: MSSConfig | None = None,
+) -> GenerateResult:
+    """Sequence-level ∆E gated decoding.
+
+    Runs greedy first, checks min(∆E) over the whole sequence.
+    If min ∆E >= threshold (suspicious), retries with full MSS lookahead.
+    """
+    cfg = config or MSSConfig()
+
+    # 1. Run greedy.
+    greedy_result = generate_greedy(prompt, backend, max_tokens=cfg.max_tokens)
+
+    # 2. Compute min ∆E from greedy events (skip step 0 which has ∆E=0).
+    delta_es = [
+        ev.candidates[ev.selected].spill_raw
+        for ev in greedy_result.events
+        if ev.step > 0
+    ]
+    min_delta_e = min(delta_es) if delta_es else 0.0
+
+    # 3. Accept if energy-consistent (min ∆E below threshold).
+    if min_delta_e < cfg.delta_e_threshold:
+        return greedy_result
+
+    # 4. Reject — retry with full MSS.
+    mss_result = generate(prompt, backend, config=cfg, variant="thresholded")
+    mss_result.retried = True
+    return mss_result

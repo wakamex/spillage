@@ -79,56 +79,58 @@ def print_report(results: list[RunResult]) -> GoNoGo:
     # Compute metrics.
     greedy_pass = sum(1 for r in results if r.mode == "greedy" and r.passed)
     greedy_total = sum(1 for r in results if r.mode == "greedy")
-    mss_pass = sum(1 for r in results if r.mode == "mss-thresholded" and r.passed)
-    mss_total = sum(1 for r in results if r.mode == "mss-thresholded")
-
     greedy_rate = greedy_pass / max(greedy_total, 1)
-    mss_rate = mss_pass / max(mss_total, 1)
-
-    if greedy_rate > 0:
-        error_reduction = (mss_rate - greedy_rate) / (1.0 - greedy_rate + 1e-8)
-    else:
-        error_reduction = mss_rate  # Any improvement is infinite relative
-
-    # Latency.
     greedy_times = [r.ms_per_token for r in results if r.mode == "greedy" and r.token_count > 0]
-    mss_times = [r.ms_per_token for r in results if r.mode == "mss-thresholded" and r.token_count > 0]
-    if greedy_times and mss_times:
-        greedy_p95 = sorted(greedy_times)[int(len(greedy_times) * 0.95)]
-        mss_p95 = sorted(mss_times)[int(len(mss_times) * 0.95)]
-        latency_ratio = mss_p95 / max(greedy_p95, 1e-6)
-    else:
-        latency_ratio = float("nan")
+    greedy_p95 = sorted(greedy_times)[int(len(greedy_times) * 0.95)] if greedy_times else 0.0
 
     click.echo(f"  Greedy pass rate:       {greedy_pass}/{greedy_total} ({greedy_rate:.0%})")
-    click.echo(f"  MSS pass rate:          {mss_pass}/{mss_total} ({mss_rate:.0%})")
-    click.echo(f"  Relative error reduction: {error_reduction:+.1%} (target: ≥{ERROR_REDUCTION_TARGET:.0%})")
-    click.echo(f"  Latency ratio (P95):    {latency_ratio:.2f}x (target: ≤{LATENCY_OVERHEAD_TARGET:.1f}x)")
 
-    # Verdict.
-    gates_passed = 0
-    gates_total = 2
+    # Report each non-greedy mode separately.
+    mss_modes = sorted({r.mode for r in results if r.mode != "greedy"})
+    best_verdict = GoNoGo.INSUFFICIENT_DATA
 
-    if error_reduction >= ERROR_REDUCTION_TARGET:
-        click.echo("  [PASS] Error reduction gate")
-        gates_passed += 1
-    else:
-        click.echo("  [FAIL] Error reduction gate")
+    for mss_mode in mss_modes:
+        mss_pass = sum(1 for r in results if r.mode == mss_mode and r.passed)
+        mss_total = sum(1 for r in results if r.mode == mss_mode)
+        mss_rate = mss_pass / max(mss_total, 1)
 
-    if latency_ratio <= LATENCY_OVERHEAD_TARGET or latency_ratio != latency_ratio:  # NaN ok for mock
-        click.echo("  [PASS] Latency gate")
-        gates_passed += 1
-    else:
-        click.echo("  [FAIL] Latency gate")
+        if greedy_rate > 0:
+            error_reduction = (mss_rate - greedy_rate) / (1.0 - greedy_rate + 1e-8)
+        else:
+            error_reduction = mss_rate
 
-    if mss_total < 3:
-        verdict = GoNoGo.INSUFFICIENT_DATA
+        mss_times = [r.ms_per_token for r in results if r.mode == mss_mode and r.token_count > 0]
+        if mss_times and greedy_p95 > 0:
+            mss_p95 = sorted(mss_times)[int(len(mss_times) * 0.95)]
+            latency_ratio = mss_p95 / greedy_p95
+        else:
+            latency_ratio = float("nan")
+
+        click.echo(f"\n  {mss_mode}:")
+        click.echo(f"    Pass rate:            {mss_pass}/{mss_total} ({mss_rate:.0%})")
+        click.echo(f"    Error reduction:      {error_reduction:+.1%} (target: ≥{ERROR_REDUCTION_TARGET:.0%})")
+        click.echo(f"    Latency ratio (P95):  {latency_ratio:.2f}x (target: ≤{LATENCY_OVERHEAD_TARGET:.1f}x)")
+
+        err_ok = error_reduction >= ERROR_REDUCTION_TARGET
+        lat_ok = latency_ratio <= LATENCY_OVERHEAD_TARGET or latency_ratio != latency_ratio
+        click.echo(f"    [{'PASS' if err_ok else 'FAIL'}] Error reduction gate")
+        click.echo(f"    [{'PASS' if lat_ok else 'FAIL'}] Latency gate")
+
+        if mss_total >= 3:
+            if err_ok and lat_ok:
+                if best_verdict != GoNoGo.GO:
+                    best_verdict = GoNoGo.GO
+            else:
+                if best_verdict == GoNoGo.INSUFFICIENT_DATA:
+                    best_verdict = GoNoGo.NO_GO
+
+    verdict = best_verdict
+
+    if verdict == GoNoGo.INSUFFICIENT_DATA:
         click.echo(f"\n  VERDICT: {verdict.value} (need more test cases)")
-    elif gates_passed == gates_total:
-        verdict = GoNoGo.GO
-        click.echo(f"\n  VERDICT: {verdict.value} — MSS shows improvement, proceed to Phase 6.")
+    elif verdict == GoNoGo.GO:
+        click.echo(f"\n  VERDICT: {verdict.value} — MSS shows improvement.")
     else:
-        verdict = GoNoGo.NO_GO
         click.echo(f"\n  VERDICT: {verdict.value} — MSS does not meet targets. Review diagnostics.")
 
     click.echo("=" * 80)
