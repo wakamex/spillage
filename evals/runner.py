@@ -129,13 +129,14 @@ def run_eval(
             result = _run_single(case, mode, backend, cfg, max_tokens)
             results.append(result)
             mode_results.append(result)
-        # One progress line per case showing all modes + greedy output.
+        # One progress line per case: mode:pass/fail + extracted answer.
+        from evals.cases import _extract_answer
         parts = []
         for r in mode_results:
             mark = "✓" if r.passed else "✗"
-            parts.append(f"{r.mode}:{mark}")
-        greedy_out = mode_results[0].output_text[:60].replace("\n", " ") if mode_results else ""
-        print(f"[{i:3d}/{len(cases)}] {case.name[:40]:40s}  {' '.join(parts)}  → {greedy_out!r}", flush=True)
+            extracted = _extract_answer(r.output_text)[:40].replace("\n", " ")
+            parts.append(f"{r.mode}:{mark} {extracted!r}")
+        print(f"[{i:3d}/{len(cases)}] {case.name}\n  {chr(10)+'  '.join(parts)}", flush=True)
 
     return results
 
