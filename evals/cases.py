@@ -254,7 +254,7 @@ def load_simple_qa(n: int | None = None, seed: int = 42) -> list[TestCase]:
             rows.append(TestCase(
                 name=name,
                 prompt=prompt,
-                check=lambda t, q=question, a=answer: _claude_judge(q, a, _extract_answer(t)),
+                check=lambda t, q=question, a=answer: _claude_judge(q, a, _strip_think(t)),
                 description=f"SimpleQA: expected '{answer}'",
                 category="simpleqa",
             ))
