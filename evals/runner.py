@@ -93,7 +93,7 @@ def _run_single(
     return RunResult(
         case_name=case.name,
         mode=mode,
-        output_text=result.text[:500],
+        output_text=result.text,
         passed=passed,
         token_count=n_tokens,
         total_time_ms=elapsed,
