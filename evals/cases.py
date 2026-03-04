@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import csv
+import functools
 import pathlib
 import re
+import subprocess
 from dataclasses import dataclass
 from typing import Callable
 
@@ -20,11 +22,55 @@ class TestCase:
     category: str  # "factual", "math", "pattern"
 
 
+_ANSWER_PATTERN = re.compile(r"(?i)Answer\s*:\s*([^\n]+)")
+
+
 def _strip_think(text: str) -> str:
     """Remove <think>...</think> blocks produced by reasoning models."""
     if "<think>" in text and "</think>" in text:
         return text.split("</think>", 1)[1].strip()
     return text
+
+
+def _extract_answer(text: str) -> str:
+    """Extract the answer after 'Answer:' prefix, stripping think tags and markdown."""
+    text = _strip_think(text)
+    text = text.replace("**", "").replace("*", "")
+    m = _ANSWER_PATTERN.search(text)
+    if m:
+        return m.group(1).strip()
+    # Fallback: first non-empty line.
+    for line in text.splitlines():
+        line = line.strip()
+        if line:
+            return line
+    return text.strip()
+
+
+@functools.lru_cache(maxsize=2048)
+def _claude_judge(question: str, expected: str, extracted: str) -> bool:
+    """Use `claude -p` to judge semantic equivalence. Cached by (expected, extracted)."""
+    # Fast path: exact substring match avoids a claude call.
+    if expected.lower() in extracted.lower():
+        return True
+    prompt = (
+        f"Question: {question}\n"
+        f"Expected answer: {expected}\n"
+        f"Model answer: {extracted}\n\n"
+        "Is the model answer correct? Allow for semantic equivalence, abbreviations, "
+        "and minor formatting differences. Reply with only 'yes' or 'no'."
+    )
+    try:
+        import os
+        env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+        result = subprocess.run(
+            ["claude", "-p", prompt],
+            capture_output=True, text=True, timeout=30, env=env,
+        )
+        return result.stdout.strip().lower().startswith("yes")
+    except Exception:
+        # Fallback to substring if claude unavailable.
+        return expected.lower() in extracted.lower()
 
 
 def _contains(text: str, *targets: str) -> bool:
@@ -201,11 +247,10 @@ def load_simple_qa(n: int | None = None, seed: int = 42) -> list[TestCase]:
             name = f"simpleqa_{i:04d}"
             # Prompt: direct-answer suffix. Think-tag output is stripped by the checker.
             prompt = f"{question} Answer:"
-            expected = answer.lower()
             rows.append(TestCase(
                 name=name,
                 prompt=prompt,
-                check=lambda t, a=expected: a in _strip_think(t).lower(),
+                check=lambda t, q=question, a=answer: _claude_judge(q, a, _extract_answer(t)),
                 description=f"SimpleQA: expected '{answer}'",
                 category="simpleqa",
             ))

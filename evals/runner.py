@@ -182,7 +182,7 @@ def main(
         raise SystemExit(1)
 
     if max_tokens is None:
-        max_tokens = 128 if suite == "simpleqa" else 64
+        max_tokens = 512 if suite == "simpleqa" else 64
 
     if suite == "simpleqa":
         cases = load_simple_qa(n=simpleqa_n, seed=simpleqa_seed)
