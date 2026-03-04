@@ -19,8 +19,10 @@ from spillage.backend_mock import MockBackend
 from spillage.config import MSSConfig
 from spillage.sampler import GenerateResult, generate, generate_greedy
 
-from .cases import TestCase, get_cases, load_simple_qa
+from .cases import TestCase, _extract_answer, get_cases, load_simple_qa
 from .report import print_report, GoNoGo
+
+VALID_MODES = ["greedy", "mss-thresholded", "mss-raw"]
 
 
 @dataclass
@@ -35,6 +37,16 @@ class RunResult:
     # Diagnostics from the first non-fast-path event (if any).
     divergence_step: int | None = None
     divergence_candidates: list[dict] | None = None
+
+
+def _load_baseline(path: str) -> dict[str, dict[str, bool]]:
+    """Load a previous JSON results file → {case_name: {mode: passed}}."""
+    with open(path) as f:
+        data = json.load(f)
+    baseline: dict[str, dict[str, bool]] = {}
+    for r in data.get("results", []):
+        baseline.setdefault(r["case"], {})[r["mode"]] = r["passed"]
+    return baseline
 
 
 def _run_single(
@@ -98,12 +110,9 @@ def run_eval(
     cases: list[TestCase] | None = None,
     max_tokens: int = 64,
     cfg: MSSConfig | None = None,
+    baseline: dict[str, dict[str, bool]] | None = None,
 ) -> list[RunResult]:
-    """Run test cases across all modes.
-
-    If *cases* is provided it is used directly; otherwise cases are loaded
-    from the built-in suite filtered by *category*.
-    """
+    """Run test cases across all modes."""
     if modes is None:
         modes = ["greedy", "mss-thresholded", "mss-raw"]
     if cfg is None:
@@ -116,7 +125,7 @@ def run_eval(
             panic_margin=cfg.panic_margin,
             max_tokens=max_tokens,
             temperature=cfg.temperature,
-            adaptive=False,  # Disable adaptive for fair comparison.
+            adaptive=False,
         )
 
     if cases is None:
@@ -129,14 +138,22 @@ def run_eval(
             result = _run_single(case, mode, backend, cfg, max_tokens)
             results.append(result)
             mode_results.append(result)
-        # One progress line per case: mode:pass/fail + extracted answer.
-        from evals.cases import _extract_answer
+
         parts = []
         for r in mode_results:
             mark = "✓" if r.passed else "✗"
             extracted = _extract_answer(r.output_text)[:40].replace("\n", " ")
-            parts.append(f"{r.mode}:{mark} {extracted!r}")
-        print(f"[{i:3d}/{len(cases)}] {case.name}\n  {chr(10)+'  '.join(parts)}", flush=True)
+            # Show baseline delta if available.
+            if baseline and case.name in baseline and r.mode in baseline[case.name]:
+                was = baseline[case.name][r.mode]
+                if was != r.passed:
+                    delta = "↑" if r.passed else "↓"
+                else:
+                    delta = "="
+                parts.append(f"{r.mode}:{mark}{delta} {extracted!r}")
+            else:
+                parts.append(f"{r.mode}:{mark} {extracted!r}")
+        print(f"[{i:3d}/{len(cases)}] {case.name}\n  {'  '.join(parts)}", flush=True)
 
     return results
 
@@ -148,16 +165,23 @@ def run_eval(
 @click.command()
 @click.option("--model", type=click.Path(exists=True), envvar="SPILLAGE_MODEL", default=None)
 @click.option("--mock", is_flag=True, help="Use MockBackend (structure validation only).")
-@click.option("--suite", type=click.Choice(["builtin", "simpleqa"]), default="builtin", show_default=True, help="Which case suite to run.")
-@click.option("--simpleqa-n", default=100, show_default=True, help="Number of SimpleQA cases to sample.")
-@click.option("--simpleqa-seed", default=42, show_default=True, help="Random seed for SimpleQA sampling.")
-@click.option("--category", type=click.Choice(["factual", "math", "pattern"]), default=None, help="Filter built-in cases by category.")
-@click.option("--max-tokens", default=None, type=int, help="Max tokens to generate (default: 64 for builtin, 128 for simpleqa).")
+@click.option("--suite", type=click.Choice(["builtin", "simpleqa"]), default="builtin", show_default=True)
+@click.option("--simpleqa-n", default=100, show_default=True)
+@click.option("--simpleqa-seed", default=42, show_default=True)
+@click.option("--category", type=click.Choice(["factual", "math", "pattern"]), default=None)
+@click.option("--modes", default="greedy,mss-thresholded,mss-raw", show_default=True,
+              help="Comma-separated list of modes to run.")
+@click.option("--no-think", "no_think", is_flag=True,
+              help="Prepend /no_think to prompts (disables thinking on Qwen3/3.5).")
+@click.option("--max-tokens", default=None, type=int,
+              help="Max tokens (default: 64 builtin, 128 simpleqa).")
 @click.option("--k", default=3, show_default=True)
 @click.option("--beta", default=2.0, show_default=True)
 @click.option("--tau", default=1.0, show_default=True)
-@click.option("--ngl", default=99, show_default=True, help="GPU layers to offload (-1=all).")
-@click.option("--json-out", type=click.Path(), default=None, help="Write results as JSON.")
+@click.option("--ngl", default=99, show_default=True, help="GPU layers to offload.")
+@click.option("--json-out", type=click.Path(), default=None, help="Save results as JSON.")
+@click.option("--baseline", "baseline_path", type=click.Path(exists=True), default=None,
+              help="Previous JSON results to compare against (shows ↑↓= deltas).")
 def main(
     model: str | None,
     mock: bool,
@@ -165,12 +189,15 @@ def main(
     simpleqa_n: int,
     simpleqa_seed: int,
     category: str | None,
-    max_tokens: int,
+    modes: str,
+    no_think: bool,
+    max_tokens: int | None,
     k: int,
     beta: float,
     tau: float,
     ngl: int,
     json_out: str | None,
+    baseline_path: str | None,
 ) -> None:
     """Run MSS evaluation harness."""
     if mock:
@@ -182,8 +209,14 @@ def main(
         click.echo("Error: provide --model or --mock.", err=True)
         raise SystemExit(1)
 
+    mode_list = [m.strip() for m in modes.split(",")]
+    invalid = [m for m in mode_list if m not in VALID_MODES]
+    if invalid:
+        click.echo(f"Unknown modes: {invalid}. Valid: {VALID_MODES}", err=True)
+        raise SystemExit(1)
+
     if max_tokens is None:
-        max_tokens = 512 if suite == "simpleqa" else 64
+        max_tokens = 128 if suite == "simpleqa" else 64
 
     if suite == "simpleqa":
         cases = load_simple_qa(n=simpleqa_n, seed=simpleqa_seed)
@@ -191,13 +224,27 @@ def main(
     else:
         cases = get_cases(category)
 
+    if no_think:
+        from dataclasses import replace
+        cases = [replace(c, prompt=f"/no_think {c.prompt}") for c in cases]
+        click.echo("Thinking disabled (/no_think prefix added).", err=True)
+
+    baseline = _load_baseline(baseline_path) if baseline_path else None
+
     cfg = MSSConfig(k=k, beta=beta, tau=tau, max_tokens=max_tokens)
-    results = run_eval(backend, cases=cases, max_tokens=max_tokens, cfg=cfg)
+    results = run_eval(backend, modes=mode_list, cases=cases,
+                       max_tokens=max_tokens, cfg=cfg, baseline=baseline)
 
     verdict = print_report(results)
 
     if json_out:
+        import os
         data = {
+            "model": os.path.basename(model) if model else "mock",
+            "suite": suite,
+            "modes": mode_list,
+            "no_think": no_think,
+            "max_tokens": max_tokens,
             "results": [
                 {
                     "case": r.case_name,
