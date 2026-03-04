@@ -50,6 +50,10 @@ def _extract_answer(text: str) -> str:
 @functools.lru_cache(maxsize=2048)
 def _claude_judge(question: str, expected: str, extracted: str) -> bool:
     """Use `claude -p` to judge semantic equivalence. Cached by (expected, extracted)."""
+    # Reject clearly garbage extractions (truncated thinking blocks).
+    stripped = extracted.strip()
+    if not stripped or stripped in ("<think>", "</think>") or stripped.startswith("<think>") and "</think>" not in stripped:
+        return False
     # Fast path: exact substring match avoids a claude call.
     if expected.lower() in extracted.lower():
         return True
