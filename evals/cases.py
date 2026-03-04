@@ -20,13 +20,20 @@ class TestCase:
     category: str  # "factual", "math", "pattern"
 
 
+def _strip_think(text: str) -> str:
+    """Remove <think>...</think> blocks produced by reasoning models."""
+    if "<think>" in text and "</think>" in text:
+        return text.split("</think>", 1)[1].strip()
+    return text
+
+
 def _contains(text: str, *targets: str) -> bool:
-    lower = text.lower()
+    lower = _strip_think(text).lower()
     return any(t.lower() in lower for t in targets)
 
 
 def _not_contains(text: str, *targets: str) -> bool:
-    lower = text.lower()
+    lower = _strip_think(text).lower()
     return not any(t.lower() in lower for t in targets)
 
 
@@ -192,13 +199,13 @@ def load_simple_qa(n: int | None = None, seed: int = 42) -> list[TestCase]:
             question = row["problem"].strip()
             answer = row["answer"].strip()
             name = f"simpleqa_{i:04d}"
-            # Prompt: question with a direct-answer suffix.
+            # Prompt: direct-answer suffix. Think-tag output is stripped by the checker.
             prompt = f"{question} Answer:"
             expected = answer.lower()
             rows.append(TestCase(
                 name=name,
                 prompt=prompt,
-                check=lambda t, a=expected: a in t.lower(),
+                check=lambda t, a=expected: a in _strip_think(t).lower(),
                 description=f"SimpleQA: expected '{answer}'",
                 category="simpleqa",
             ))

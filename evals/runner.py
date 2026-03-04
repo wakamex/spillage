@@ -123,10 +123,19 @@ def run_eval(
         cases = get_cases(category)
     results: list[RunResult] = []
 
-    for case in cases:
+    for i, case in enumerate(cases, 1):
+        mode_results = []
         for mode in modes:
             result = _run_single(case, mode, backend, cfg, max_tokens)
             results.append(result)
+            mode_results.append(result)
+        # One progress line per case showing all modes + greedy output.
+        parts = []
+        for r in mode_results:
+            mark = "✓" if r.passed else "✗"
+            parts.append(f"{r.mode}:{mark}")
+        greedy_out = mode_results[0].output_text[:60].replace("\n", " ") if mode_results else ""
+        print(f"[{i:3d}/{len(cases)}] {case.name[:40]:40s}  {' '.join(parts)}  → {greedy_out!r}", flush=True)
 
     return results
 
@@ -142,7 +151,7 @@ def run_eval(
 @click.option("--simpleqa-n", default=100, show_default=True, help="Number of SimpleQA cases to sample.")
 @click.option("--simpleqa-seed", default=42, show_default=True, help="Random seed for SimpleQA sampling.")
 @click.option("--category", type=click.Choice(["factual", "math", "pattern"]), default=None, help="Filter built-in cases by category.")
-@click.option("--max-tokens", default=64, show_default=True)
+@click.option("--max-tokens", default=None, type=int, help="Max tokens to generate (default: 64 for builtin, 128 for simpleqa).")
 @click.option("--k", default=3, show_default=True)
 @click.option("--beta", default=2.0, show_default=True)
 @click.option("--tau", default=1.0, show_default=True)
@@ -171,6 +180,9 @@ def main(
     else:
         click.echo("Error: provide --model or --mock.", err=True)
         raise SystemExit(1)
+
+    if max_tokens is None:
+        max_tokens = 128 if suite == "simpleqa" else 64
 
     if suite == "simpleqa":
         cases = load_simple_qa(n=simpleqa_n, seed=simpleqa_seed)
