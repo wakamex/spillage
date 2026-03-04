@@ -56,6 +56,8 @@ class RunResult:
     divergence_candidates: list[dict] | None = None
     # Per-token ∆E (spilled energy) for detection analysis.
     delta_e_per_token: list[float] | None = None
+    # Per-token log probability for confidence baseline comparison.
+    log_prob_per_token: list[float] | None = None
     # Whether sequence was retried (mss-seq-gated mode).
     retried: bool = False
 
@@ -118,8 +120,9 @@ def _run_single(
             ]
             break
 
-    # Collect per-token ∆E for post-hoc detection analysis.
+    # Collect per-token ∆E and log_prob for post-hoc detection analysis.
     delta_es = [round(ev.candidates[ev.selected].spill_raw, 4) for ev in result.events]
+    log_probs = [round(ev.candidates[ev.selected].log_prob, 4) for ev in result.events]
 
     return RunResult(
         case_name=case.name,
@@ -132,6 +135,7 @@ def _run_single(
         divergence_step=div_step,
         divergence_candidates=div_cands,
         delta_e_per_token=delta_es,
+        log_prob_per_token=log_probs,
         retried=result.retried,
     )
 
@@ -300,6 +304,7 @@ def main(
                     "divergence_step": r.divergence_step,
                     "divergence_candidates": r.divergence_candidates,
                     "delta_e": r.delta_e_per_token,
+                    "log_prob": r.log_prob_per_token,
                     "retried": r.retried,
                 }
                 for r in results

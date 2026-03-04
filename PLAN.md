@@ -31,28 +31,42 @@ The paper uses ∆E for post-hoc DETECTION (AUROC 73-77%), not for decoding.
 - Gate triggers randomly → lookahead picks worse tokens → score degrades
 - Per-token gating is not viable
 
-### Phase 3: Sequence-level ∆E reject/retry ← CURRENT
-- **Insight**: per-token ∆E gating failed, but sequence-level min ∆E still separates
-  correct vs incorrect (AUROC=0.802)
-- **Approach**: run greedy first (cheap), check min(∆E) over whole sequence,
-  only retry with full MSS if flagged
-- New mode: `mss-seq-gated`
-  1. `generate_greedy()` → result + per-token ∆E (already tracked)
-  2. Compute min(∆E) over the sequence
-  3. If min ∆E < threshold → accept (energy-consistent, probably correct)
-  4. If min ∆E ≥ threshold → reject, re-run with `generate()` (full MSS)
-- Reuses `delta_e_threshold` from MSSConfig (default -4.5)
-- Adds `retried` field to `GenerateResult` for diagnostics
+### Phase 3: Sequence-level ∆E reject/retry ✅ DONE — NEGATIVE RESULT
+- Implemented `generate_seq_gated()` and `mss-seq-gated` mode
+- **Capitals** (Qwen3.5-0.8B, threshold -3.0): 68/73 greedy → 68/73 seq-gated (no improvement)
+  - Only 1/73 flagged for retry (Philippines, min ∆E=-1.267), MSS produced garbage on retry
+  - 4/5 wrong answers have "normal" min ∆E (confident hallucinations)
+- **Key finding**: min(∆E) over the sequence is driven by the repetition tail, not answer tokens
+  - Most negative ∆E always at steps 20+ (repetitive continuation), not the answer
+  - Detected degeneration (Philippines), not hallucination
 
-### Phase 4: Multi-token ∆E lookahead (if Phase 3 helps)
-- At flagged steps: for each candidate, generate 3-5 greedy continuation tokens
-- Compute ∆E at each continuation step
-- Use min-pooling (paper's best strategy) to score each candidate's trajectory
-- Select candidate with best (lowest) min-pooled ∆E
-- Only feasible at Phase-3-gated steps to control cost
+### Phase 4: ∆E vs log_prob comparison ✅ DONE — ∆E ≈ CONFIDENCE
+- Added per-token `log_prob` collection alongside `delta_e`
+- **Head-to-head AUROC** (Qwen3.5-0.8B, 73 capitals):
 
-## Key Insight
+  | Metric        | AUROC | Direction       |
+  |---------------|-------|-----------------|
+  | min_dE        | 0.747 | lower=correct   |
+  | min_logprob   | 0.815 | higher=correct  |
+  | mean_dE       | 0.721 | lower=correct   |
+  | mean_logprob  | 0.606 | higher=correct  |
+  | median_dE     | 0.725 | lower=correct   |
+  | median_logprob| 0.538 | higher=correct  |
 
-Sequence-level min ∆E is a good detector of incorrect sequences. Use it to gate
-expensive MSS retries: run greedy first, and only retry with full lookahead when
-the energy profile flags the sequence as suspicious.
+- **On answer tokens only** (first 3-5 tokens): ∆E at chance (0.36-0.51), log_prob at 0.85
+- **SimpleQA** (Qwen3.5-35B-A3B, 100 cases, 21% pass rate): both near chance (~0.5-0.65)
+- **Conclusion**: ∆E = log_z(i+1) - logit(i), and the logit term dominates.
+  min(∆E) ≈ -max(logit) — it's a confidence proxy, not a distinct energy signal.
+  The paper's AUROC results are likely reproducible with plain min(log_prob).
+
+## Key Takeaways
+
+1. **∆E is not useful for decoding** — per-token gating triggers randomly, sequence-level
+   gating catches degeneration but not confident hallucinations
+2. **∆E ≈ confidence** — the logit term dominates, making ∆E a proxy for token probability.
+   The energy conservation framing is theoretically elegant but practically equivalent to
+   simple confidence-based detection
+3. **The paper's contribution is valid but narrow** — ∆E is a good training-free detector
+   threshold, as claimed. It's just not a *different* signal from confidence
+4. **MSS lookahead doesn't help** — even when flagged sequences are retried with full
+   MSS, the alternative decoding doesn't fix confident hallucinations
